@@ -239,10 +239,16 @@ class PreviewWidget(QWidget):
 			self._resize_handle = None
 
 	def wheelEvent(self, e: QWheelEvent) -> None:  # type: ignore[override]
-		# Ctrl + wheel rotates entire watermark layout
+		# Ctrl + wheel rotates the nearer watermark (text or image) independently
 		if e.modifiers() & Qt.ControlModifier:
 			angle_delta = e.angleDelta().y() / 8.0
-			self._cfg.layout.rotation_deg = (self._cfg.layout.rotation_deg + angle_delta) % 360
+			target = self._pick_target_by_cursor(e.position().toPoint())
+			if target == "text" and self._cfg.layout.enabled_text:
+				current = float(getattr(self._cfg.layout, "text_rotation_deg", 0.0))
+				self._cfg.layout.text_rotation_deg = (current + angle_delta) % 360
+			elif target == "image" and self._cfg.layout.enabled_image:
+				current = float(getattr(self._cfg.layout, "image_rotation_deg", 0.0))
+				self._cfg.layout.image_rotation_deg = (current + angle_delta) % 360
 			self.update()
 			self.configChanged.emit(self._cfg)
 			return
@@ -252,10 +258,10 @@ class PreviewWidget(QWidget):
 		if delta_steps == 0:
 			return
 		if target == "text" and self._cfg.layout.enabled_text:
-			# Change font size by 1pt per notch
-			new_size = max(8, min(128, int(self._cfg.text.size_pt + delta_steps)))
-			if new_size != self._cfg.text.size_pt:
-				self._cfg.text.size_pt = new_size
+			# Change font size by 1px per notch
+			new_size = max(8, min(128, int(getattr(self._cfg.text, "size_px", 16) + delta_steps)))
+			if new_size != getattr(self._cfg.text, "size_px", 16):
+				self._cfg.text.size_px = new_size
 				self.update()
 				self.configChanged.emit(self._cfg)
 		elif target == "image" and self._cfg.layout.enabled_image:

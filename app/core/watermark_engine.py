@@ -26,7 +26,8 @@ class WatermarkEngine:
 			iy = base.height() * (cfg.layout.image_position[1] if cfg.layout.image_position else cfg.layout.position[1])
 			p.save()
 			p.translate(QPointF(ix, iy))
-			p.rotate(cfg.layout.rotation_deg)
+			# Prefer specific image rotation; fallback to legacy unified rotation
+			p.rotate(getattr(cfg.layout, "image_rotation_deg", 0.0) or getattr(cfg.layout, "rotation_deg", 0.0))
 			self._draw_image_watermark(p, base, cfg)
 			p.restore()
 
@@ -36,7 +37,8 @@ class WatermarkEngine:
 			ty = base.height() * (cfg.layout.text_position[1] if cfg.layout.text_position else cfg.layout.position[1])
 			p.save()
 			p.translate(QPointF(tx, ty))
-			p.rotate(cfg.layout.rotation_deg)
+			# Prefer specific text rotation; fallback to legacy unified rotation
+			p.rotate(getattr(cfg.layout, "text_rotation_deg", 0.0) or getattr(cfg.layout, "rotation_deg", 0.0))
 			self._draw_text_watermark(p, base, cfg)
 			p.restore()
 
@@ -51,7 +53,12 @@ class WatermarkEngine:
 		return path
 
 	def _draw_text_watermark(self, p: QPainter, base: QImage, cfg: WatermarkConfig) -> None:
-		font = QFont(cfg.text.family, cfg.text.size_pt)
+		font = QFont(cfg.text.family)
+		# Use pixel size to avoid DPI differences across images
+		try:
+			font.setPixelSize(int(getattr(cfg.text, "size_px", 16)))
+		except Exception:
+			font.setPixelSize(16)
 		font.setBold(cfg.text.bold)
 		font.setItalic(cfg.text.italic)
 		p.setFont(font)

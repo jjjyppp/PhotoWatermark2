@@ -11,7 +11,7 @@ Color = Tuple[int, int, int, int]  # RGBA 0-255
 class TextWatermark:
 	text: str = "Sample Watermark"
 	family: str = "Segoe UI"
-	size_pt: int = 32
+	size_px: int = 16
 	bold: bool = False
 	italic: bool = False
 	color: Color = (0, 0, 0, 255)
@@ -38,7 +38,11 @@ class WatermarkLayout:
 	# New separate positions
 	text_position: Tuple[float, float] = (0.5, 0.5)
 	image_position: Tuple[float, float] = (0.5, 0.5)
+	# Backward-compatible unified rotation; new fields below take precedence where used
 	rotation_deg: float = 0.0
+	# Separate rotations
+	text_rotation_deg: float = 0.0
+	image_rotation_deg: float = 0.0
 	enabled_text: bool = True
 	enabled_image: bool = False
 

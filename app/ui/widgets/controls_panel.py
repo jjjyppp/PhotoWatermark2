@@ -75,8 +75,8 @@ class ControlsPanel(QWidget):
 		hbox_font = QHBoxLayout()
 		hbox_font.setSpacing(4)
 		hbox_font.addWidget(QLabel("字号"))
-		self.slider_fs = QSlider(Qt.Horizontal); self.slider_fs.setRange(8, 128); self.slider_fs.setValue(self._cfg.text.size_pt)
-		self.spin_fs = QDoubleSpinBox(); self.spin_fs.setRange(8, 128); self.spin_fs.setDecimals(0); self.spin_fs.setValue(self._cfg.text.size_pt); self.spin_fs.setFixedWidth(80)
+		self.slider_fs = QSlider(Qt.Horizontal); self.slider_fs.setRange(8, 128); self.slider_fs.setValue(getattr(self._cfg.text, "size_px", 16))
+		self.spin_fs = QDoubleSpinBox(); self.spin_fs.setRange(8, 128); self.spin_fs.setDecimals(0); self.spin_fs.setValue(getattr(self._cfg.text, "size_px", 16)); self.spin_fs.setFixedWidth(80)
 		self.slider_fs.valueChanged.connect(lambda v: (self.spin_fs.setValue(v), self._on_font_size(int(v))))
 		self.spin_fs.valueChanged.connect(lambda v: (self.slider_fs.setValue(int(v)), self._on_font_size(int(v))))
 		hbox_font.addWidget(self.slider_fs, 1); hbox_font.addWidget(self.spin_fs)
@@ -97,6 +97,15 @@ class ControlsPanel(QWidget):
 		self.spin_text_op.valueChanged.connect(lambda v: (self.slider_text_op.setValue(int(v)), self._on_text_opacity(int(v))))
 		row_text_op.addWidget(self.slider_text_op, 1); row_text_op.addWidget(self.spin_text_op)
 		layout.addLayout(row_text_op)
+
+		# 文本旋转控制
+		row_rot_text = QHBoxLayout(); row_rot_text.setSpacing(4); row_rot_text.addWidget(QLabel("文本旋转(°)"))
+		self.slider_rot_text = QSlider(Qt.Horizontal); self.slider_rot_text.setRange(0, 360); self.slider_rot_text.setValue(int(getattr(self._cfg.layout, "text_rotation_deg", 0.0) or getattr(self._cfg.layout, "rotation_deg", 0.0)))
+		self.spin_rot_text = QDoubleSpinBox(); self.spin_rot_text.setRange(0.0, 360.0); self.spin_rot_text.setDecimals(0); self.spin_rot_text.setValue(float(getattr(self._cfg.layout, "text_rotation_deg", 0.0) or getattr(self._cfg.layout, "rotation_deg", 0.0))); self.spin_rot_text.setFixedWidth(80)
+		self.slider_rot_text.valueChanged.connect(lambda v: (self.spin_rot_text.setValue(v), self._on_rotation_text(int(v))))
+		self.spin_rot_text.valueChanged.connect(lambda v: (self.slider_rot_text.setValue(int(v)), self._on_rotation_text(int(v))))
+		row_rot_text.addWidget(self.slider_rot_text, 1); row_rot_text.addWidget(self.spin_rot_text)
+		layout.addLayout(row_rot_text)
 
 		row_effects = QHBoxLayout(); row_effects.setSpacing(4)
 		self.chk_shadow = QCheckBox("阴影"); self.chk_shadow.stateChanged.connect(self._on_shadow)
@@ -133,9 +142,20 @@ class ControlsPanel(QWidget):
 		row_logo_op.addWidget(self.slider_logo_op, 1); row_logo_op.addWidget(self.spin_logo_op)
 		layout.addLayout(row_logo_op)
 
+		# 图片旋转控制
+		row_rot_img = QHBoxLayout(); row_rot_img.setSpacing(4); row_rot_img.addWidget(QLabel("图片旋转(°)"))
+		self.slider_rot_img = QSlider(Qt.Horizontal); self.slider_rot_img.setRange(0, 360); self.slider_rot_img.setValue(int(getattr(self._cfg.layout, "image_rotation_deg", 0.0) or getattr(self._cfg.layout, "rotation_deg", 0.0)))
+		self.spin_rot_img = QDoubleSpinBox(); self.spin_rot_img.setRange(0.0, 360.0); self.spin_rot_img.setDecimals(0); self.spin_rot_img.setValue(float(getattr(self._cfg.layout, "image_rotation_deg", 0.0) or getattr(self._cfg.layout, "rotation_deg", 0.0))); self.spin_rot_img.setFixedWidth(80)
+		self.slider_rot_img.valueChanged.connect(lambda v: (self.spin_rot_img.setValue(v), self._on_rotation_image(int(v))))
+		self.spin_rot_img.valueChanged.connect(lambda v: (self.slider_rot_img.setValue(int(v)), self._on_rotation_image(int(v))))
+		row_rot_img.addWidget(self.slider_rot_img, 1); row_rot_img.addWidget(self.spin_rot_img)
+		layout.addLayout(row_rot_img)
+
 		line3 = QFrame(); line3.setFrameShape(QFrame.HLine); layout.addWidget(line3)
 
 		# Drag target selector removed: now drag directly on canvas without selection
+
+
 
 		# Position dropdowns (separate)
 		row_pos_t = QHBoxLayout(); row_pos_t.setSpacing(4); row_pos_t.addWidget(QLabel("文本位置"))
@@ -181,7 +201,7 @@ class ControlsPanel(QWidget):
 		if not hasattr(self, "_ready") or not self._ready:
 			return
 		# guard widgets validity
-		for w in [getattr(self, n, None) for n in ["txt_input","font_combo","chk_bold","chk_italic","slider_fs","slider_text_op","slider_scale","spin_scale","slider_logo_op","slider_rot","pos_combo_text","pos_combo_img"]]:
+		for w in [getattr(self, n, None) for n in ["txt_input","font_combo","chk_bold","chk_italic","slider_fs","slider_text_op","slider_scale","spin_scale","slider_logo_op","slider_rot_text","slider_rot_img","pos_combo_text","pos_combo_img"]]:
 			if w is None or not isValid(w):
 				return
 		self._cfg = cfg
@@ -189,8 +209,8 @@ class ControlsPanel(QWidget):
 		self.font_combo.setCurrentFont(QFont(cfg.text.family))
 		self.chk_bold.setChecked(cfg.text.bold)
 		self.chk_italic.setChecked(cfg.text.italic)
-		self.slider_fs.setValue(cfg.text.size_pt)
-		self.spin_fs.setValue(cfg.text.size_pt)
+		self.slider_fs.setValue(getattr(cfg.text, "size_px", 16))
+		self.spin_fs.setValue(getattr(cfg.text, "size_px", 16))
 		self.slider_text_op.setValue(int(cfg.text.color[3]*100/255))
 		self.spin_text_op.setValue(int(cfg.text.color[3]*100/255))
 		# 同步颜色下拉默认值：黑色(1)或白(半透)(0)
@@ -205,8 +225,11 @@ class ControlsPanel(QWidget):
 		self.spin_scale.setValue(cfg.image.scale*100)
 		self.slider_logo_op.setValue(int(cfg.image.opacity*100))
 		self.spin_logo_op.setValue(int(cfg.image.opacity*100))
-		self.slider_rot.setValue(int(cfg.layout.rotation_deg))
-		self.spin_rot.setValue(int(cfg.layout.rotation_deg))
+		# Separate rotation sync with legacy fallback
+		self.slider_rot_text.setValue(int(getattr(cfg.layout, "text_rotation_deg", 0.0) if getattr(cfg.layout, "text_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
+		self.spin_rot_text.setValue(float(getattr(cfg.layout, "text_rotation_deg", 0.0) if getattr(cfg.layout, "text_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
+		self.slider_rot_img.setValue(int(getattr(cfg.layout, "image_rotation_deg", 0.0) if getattr(cfg.layout, "image_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
+		self.spin_rot_img.setValue(float(getattr(cfg.layout, "image_rotation_deg", 0.0) if getattr(cfg.layout, "image_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
 		# update pos combo robustly
 		presets = [
 			(0.1,0.1),(0.5,0.1),(0.9,0.1),
@@ -258,7 +281,7 @@ class ControlsPanel(QWidget):
 		self._emit()
 
 	def _on_font_size(self, v: int) -> None:
-		self._cfg.text.size_pt = v
+		self._cfg.text.size_px = v
 		self._emit()
 
 	def _on_color(self, idx: int) -> None:
@@ -327,8 +350,12 @@ class ControlsPanel(QWidget):
 		self._cfg.layout.position = positions[idx]
 		self._emit()
 
-	def _on_rotation(self, v: int) -> None:
-		self._cfg.layout.rotation_deg = float(v)
+	def _on_rotation_text(self, v: int) -> None:
+		self._cfg.layout.text_rotation_deg = float(v)
+		self._emit()
+
+	def _on_rotation_image(self, v: int) -> None:
+		self._cfg.layout.image_rotation_deg = float(v)
 		self._emit()
 
 	# templates
