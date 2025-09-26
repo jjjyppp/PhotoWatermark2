@@ -7,7 +7,7 @@ QSplitter::handle { background: #e3e5e8; width: 6px; }
 QListWidget { background: #ffffff; border: 1px solid #d8dbe0; }
 QListWidget::item { padding: 6px; }
 QListWidget::item:selected { background: #f0f0f0; color: #111; }
-QPushButton { background: #2563eb; color: white; border: none; padding: 6px 10px; border-radius: 6px; min-height: 28px; }
+QPushButton { background: #2563eb; color: white; border: none; padding: 4px 8px; border-radius: 6px; min-height: 24px; }
 QPushButton:hover { background: #1d4ed8; }
 QPushButton:disabled { background: #93c5fd; }
 QLabel { color: #111827; }
@@ -27,7 +27,7 @@ QSplitter::handle { background: #374151; width: 6px; }
 QListWidget { background: #1f2937; border: 1px solid #374151; }
 QListWidget::item { padding: 6px; }
 QListWidget::item:selected { background: #2b2b2b; color: #e5e7eb; }
-QPushButton { background: #0ea5e9; color: #111827; border: none; padding: 6px 10px; border-radius: 6px; min-height: 28px; }
+QPushButton { background: #0ea5e9; color: #111827; border: none; padding: 4px 8px; border-radius: 6px; min-height: 24px; }
 QPushButton:hover { background: #38bdf8; }
 QPushButton:disabled { background: #334155; color: #9ca3af; }
 QLabel { color: #e5e7eb; }
@@ -47,7 +47,7 @@ QSplitter::handle { background: #ddd; width: 6px; }
 QListWidget { background: #fff; border: 1px solid #000; }
 QListWidget::item { padding: 6px; }
 QListWidget::item:selected { background: #f0f0f0; color: #111; }
-QPushButton { background: #000; color: #fff; border: 2px solid #000; padding: 6px 10px; border-radius: 4px; min-height: 28px; }
+QPushButton { background: #000; color: #fff; border: 2px solid #000; padding: 4px 8px; border-radius: 4px; min-height: 24px; }
 QPushButton:hover { background: #fff; color: #000; }
 QPushButton:disabled { background: #888; color: #fff; border-color: #888; }
 QLabel { color: #000; }

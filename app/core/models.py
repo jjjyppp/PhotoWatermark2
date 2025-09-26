@@ -25,7 +25,9 @@ class TextWatermark:
 @dataclass
 class ImageWatermark:
 	path: Optional[str] = None
-	scale: float = 0.3  # relative to shorter edge
+	scale: float = 0.3  # relative to shorter edge (uniform)
+	scale_x: float = 1.0  # non-uniform scaling multiplier on width
+	scale_y: float = 1.0  # non-uniform scaling multiplier on height
 	opacity: float = 0.75  # 0-1
 
 

@@ -21,7 +21,8 @@ class ControlsPanel(QWidget):
 
 	def __init__(self, parent=None) -> None:
 		super().__init__(parent)
-		self.setMinimumWidth(480)
+		# Wider panel to avoid cramped rows
+		self.setMinimumWidth(420)
 		self._cfg = WatermarkConfig()
 		self._ready = True
 
@@ -29,8 +30,8 @@ class ControlsPanel(QWidget):
 		scroll.setWidgetResizable(True)
 		content = QWidget()
 		layout = QVBoxLayout(content)
-		layout.setContentsMargins(8, 8, 8, 8)
-		layout.setSpacing(8)
+		layout.setContentsMargins(6, 6, 6, 6)
+		layout.setSpacing(4)
 
 		title = QLabel("导入与设置")
 		layout.addWidget(title)
@@ -64,6 +65,7 @@ class ControlsPanel(QWidget):
 		self.font_combo = QFontComboBox(); self.font_combo.setFontFilters(QFontComboBox.ScalableFonts)
 		self.font_combo.setCurrentFont(QFont(self._cfg.text.family))
 		self.font_combo.currentFontChanged.connect(self._on_font_family)
+		self.font_combo.setMinimumWidth(180)
 		font_row.addWidget(self.font_combo)
 		self.chk_bold = QCheckBox("粗体"); self.chk_bold.stateChanged.connect(self._on_bold)
 		self.chk_italic = QCheckBox("斜体"); self.chk_italic.stateChanged.connect(self._on_italic)
@@ -71,6 +73,7 @@ class ControlsPanel(QWidget):
 		layout.addLayout(font_row)
 
 		hbox_font = QHBoxLayout()
+		hbox_font.setSpacing(4)
 		hbox_font.addWidget(QLabel("字号"))
 		self.slider_fs = QSlider(Qt.Horizontal); self.slider_fs.setRange(8, 128); self.slider_fs.setValue(self._cfg.text.size_pt)
 		self.spin_fs = QDoubleSpinBox(); self.spin_fs.setRange(8, 128); self.spin_fs.setDecimals(0); self.spin_fs.setValue(self._cfg.text.size_pt); self.spin_fs.setFixedWidth(80)
@@ -79,13 +82,13 @@ class ControlsPanel(QWidget):
 		hbox_font.addWidget(self.slider_fs, 1); hbox_font.addWidget(self.spin_fs)
 		layout.addLayout(hbox_font)
 
-		row_color = QHBoxLayout(); row_color.addWidget(QLabel("颜色"))
+		row_color = QHBoxLayout(); row_color.setSpacing(4); row_color.addWidget(QLabel("颜色"))
 		self.cmb_color = QComboBox(); self.cmb_color.addItems(["白(半透)", "黑", "红", "绿", "蓝"]) ; self.cmb_color.currentIndexChanged.connect(self._on_color)
 		btn_pick = AutoFitButton("自定义颜色…"); btn_pick.clicked.connect(self._pick_color)
 		row_color.addWidget(self.cmb_color); row_color.addWidget(btn_pick)
 		layout.addLayout(row_color)
 
-		row_text_op = QHBoxLayout(); row_text_op.addWidget(QLabel("文本透明度(%)"))
+		row_text_op = QHBoxLayout(); row_text_op.setSpacing(4); row_text_op.addWidget(QLabel("文本透明度(%)"))
 		self.slider_text_op = QSlider(Qt.Horizontal); self.slider_text_op.setRange(0, 100); self.slider_text_op.setValue(int(self._cfg.text.color[3]*100/255))
 		self.spin_text_op = QDoubleSpinBox(); self.spin_text_op.setRange(0, 100); self.spin_text_op.setDecimals(0); self.spin_text_op.setValue(int(self._cfg.text.color[3]*100/255)); self.spin_text_op.setFixedWidth(80)
 		self.slider_text_op.valueChanged.connect(lambda v: (self.spin_text_op.setValue(v), self._on_text_opacity(int(v))))
@@ -93,7 +96,7 @@ class ControlsPanel(QWidget):
 		row_text_op.addWidget(self.slider_text_op, 1); row_text_op.addWidget(self.spin_text_op)
 		layout.addLayout(row_text_op)
 
-		row_effects = QHBoxLayout()
+		row_effects = QHBoxLayout(); row_effects.setSpacing(4)
 		self.chk_shadow = QCheckBox("阴影"); self.chk_shadow.stateChanged.connect(self._on_shadow)
 		self.chk_outline = QCheckBox("描边"); self.chk_outline.stateChanged.connect(self._on_outline)
 		row_effects.addWidget(self.chk_shadow); row_effects.addWidget(self.chk_outline)
@@ -110,15 +113,17 @@ class ControlsPanel(QWidget):
 		btn_logo = AutoFitButton("选择图片水印(支持PNG透明)…"); btn_logo.clicked.connect(self._pick_logo)
 		layout.addWidget(btn_logo)
 
-		row_logo_scale = QHBoxLayout(); row_logo_scale.addWidget(QLabel("图片缩放(%)"))
+		row_logo_scale = QHBoxLayout(); row_logo_scale.setSpacing(4); row_logo_scale.addWidget(QLabel("图片缩放(%)"))
 		self.slider_scale = QSlider(Qt.Horizontal); self.slider_scale.setRange(5, 300); self.slider_scale.setValue(int(self._cfg.image.scale*100))
-		self.spin_scale = QDoubleSpinBox(); self.spin_scale.setRange(5.0, 300.0); self.spin_scale.setDecimals(1); self.spin_scale.setValue(self._cfg.image.scale*100); self.spin_scale.setFixedWidth(80)
+		self.spin_scale = QDoubleSpinBox(); self.spin_scale.setRange(5.0, 300.0); self.spin_scale.setDecimals(0); self.spin_scale.setSingleStep(1.0); self.spin_scale.setValue(self._cfg.image.scale*100); self.spin_scale.setFixedWidth(80)
 		self.slider_scale.valueChanged.connect(lambda v: (self.spin_scale.setValue(v), self._on_logo_scale(int(v))))
 		self.spin_scale.valueChanged.connect(lambda v: (self.slider_scale.setValue(int(v)), self._on_logo_scale(int(v))))
+
+		# Note: non-uniform scaling is done on-canvas via handles; UI shows uniform percent only
 		row_logo_scale.addWidget(self.slider_scale, 1); row_logo_scale.addWidget(self.spin_scale)
 		layout.addLayout(row_logo_scale)
 
-		row_logo_op = QHBoxLayout(); row_logo_op.addWidget(QLabel("图片透明度(%)"))
+		row_logo_op = QHBoxLayout(); row_logo_op.setSpacing(4); row_logo_op.addWidget(QLabel("图片透明度(%)"))
 		self.slider_logo_op = QSlider(Qt.Horizontal); self.slider_logo_op.setRange(0, 100); self.slider_logo_op.setValue(int(self._cfg.image.opacity*100))
 		self.spin_logo_op = QDoubleSpinBox(); self.spin_logo_op.setRange(0, 100); self.spin_logo_op.setDecimals(0); self.spin_logo_op.setValue(int(self._cfg.image.opacity*100)); self.spin_logo_op.setFixedWidth(80)
 		self.slider_logo_op.valueChanged.connect(lambda v: (self.spin_logo_op.setValue(v), self._on_logo_opacity(int(v))))
@@ -128,19 +133,15 @@ class ControlsPanel(QWidget):
 
 		line3 = QFrame(); line3.setFrameShape(QFrame.HLine); layout.addWidget(line3)
 
-		# Drag target selector
-		row_drag = QHBoxLayout(); row_drag.addWidget(QLabel("拖拽目标"))
-		self.cmb_drag = QComboBox(); self.cmb_drag.addItems(["文本","图片"]) ; self.cmb_drag.currentIndexChanged.connect(lambda i: self.dragTargetChanged.emit("text" if i == 0 else "image"))
-		row_drag.addWidget(self.cmb_drag)
-		layout.addLayout(row_drag)
+		# Drag target selector removed: now drag directly on canvas without selection
 
 		# Position dropdowns (separate)
-		row_pos_t = QHBoxLayout(); row_pos_t.addWidget(QLabel("文本位置"))
+		row_pos_t = QHBoxLayout(); row_pos_t.setSpacing(4); row_pos_t.addWidget(QLabel("文本位置"))
 		self.pos_combo_text = QComboBox(); self.pos_combo_text.addItems(["左上","中上","右上","左中","正中","右中","左下","中下","右下"]) ; self.pos_combo_text.currentIndexChanged.connect(self._on_pos_text)
 		row_pos_t.addWidget(self.pos_combo_text)
 		layout.addLayout(row_pos_t)
 
-		row_pos_i = QHBoxLayout(); row_pos_i.addWidget(QLabel("图片位置"))
+		row_pos_i = QHBoxLayout(); row_pos_i.setSpacing(4); row_pos_i.addWidget(QLabel("图片位置"))
 		self.pos_combo_img = QComboBox(); self.pos_combo_img.addItems(["左上","中上","右上","左中","正中","右中","左下","中下","右下"]) ; self.pos_combo_img.currentIndexChanged.connect(self._on_pos_image)
 		row_pos_i.addWidget(self.pos_combo_img)
 		layout.addLayout(row_pos_i)
@@ -148,7 +149,7 @@ class ControlsPanel(QWidget):
 		line4 = QFrame(); line4.setFrameShape(QFrame.HLine); layout.addWidget(line4)
 
 		# Templates with apply buttons
-		row_tpl_head = QHBoxLayout()
+		row_tpl_head = QHBoxLayout(); row_tpl_head.setSpacing(4)
 		self.btn_save_tpl = AutoFitButton("保存模板…"); self.btn_save_tpl.clicked.connect(self._save_template)
 		self.btn_reload_tpls = AutoFitButton("刷新模板"); self.btn_reload_tpls.clicked.connect(self._reload_templates)
 		row_tpl_head.addWidget(self.btn_save_tpl); row_tpl_head.addWidget(self.btn_reload_tpls)
@@ -159,7 +160,7 @@ class ControlsPanel(QWidget):
 		self.list_tpls.customContextMenuRequested.connect(self._on_tpl_context)
 		layout.addWidget(self.list_tpls)
 
-		row_tpl_apply = QHBoxLayout()
+		row_tpl_apply = QHBoxLayout(); row_tpl_apply.setSpacing(4)
 		btn_apply_sel = AutoFitButton("应用到所选"); btn_apply_sel.clicked.connect(self._apply_template_to_selected)
 		btn_apply_all = AutoFitButton("应用到全部"); btn_apply_all.clicked.connect(self._apply_template_to_all)
 		row_tpl_apply.addWidget(btn_apply_sel); row_tpl_apply.addWidget(btn_apply_all)

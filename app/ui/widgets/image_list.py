@@ -15,9 +15,10 @@ class ImageListWidget(QWidget):
 		self.list = QListWidget(self)
 		self.list.setViewMode(QListWidget.IconMode)
 		self.list.setMovement(QListWidget.Static)
-		self.list.setIconSize(QSize(200, 150))
+		# Slightly smaller thumbnails and grid to reduce sidebar width
+		self.list.setIconSize(QSize(160, 120))
 		self.list.setResizeMode(QListWidget.Adjust)
-		self.list.setGridSize(QSize(220, 200))
+		self.list.setGridSize(QSize(180, 168))
 		self.list.setWordWrap(True)
 		self.list.setSpacing(8)
 		self.list.itemSelectionChanged.connect(self._emit_selected)

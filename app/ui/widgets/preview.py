@@ -1,24 +1,55 @@
-from PySide6.QtWidgets import QWidget
-from PySide6.QtGui import QPainter, QImage, QMouseEvent, QWheelEvent, QColor
-from PySide6.QtCore import Qt, QRect, QSize, QPoint
+from PySide6.QtWidgets import QWidget, QApplication
+from PySide6.QtGui import QPainter, QImage, QMouseEvent, QWheelEvent, QColor, QPen
+from PySide6.QtCore import Qt, QRect, QSize, QPoint, Signal
 
 from app.core.models import WatermarkConfig
 from app.core.watermark_engine import WatermarkEngine
 
 
 class PreviewWidget(QWidget):
+	configChanged = Signal(WatermarkConfig)
 	def __init__(self, parent=None) -> None:
 		super().__init__(parent)
 		self._image = QImage()
 		self._engine = WatermarkEngine()
 		self._cfg = WatermarkConfig()
 		self._dragging = False
+		self._resizing = False
+		self._resize_handle: str | None = None  # 'n','s','e','w','nw','ne','se','sw'
 		self._last_mouse = QPoint()
 		self._display_rect = QRect()
 		self._drag_target = "text"  # or "image"
+		self._image_bbox = QRect()  # image watermark bbox on display
 
 	def setDragTarget(self, target: str) -> None:
+		# Deprecated: target is chosen automatically based on cursor position
 		self._drag_target = target if target in ("text","image") else "text"
+
+	def _pick_target_by_cursor(self, pos: QPoint) -> str:
+		# Determine which watermark (text/image) is closer to the cursor within the display rect
+		if self._display_rect.width() <= 0 or self._display_rect.height() <= 0:
+			return "text"
+		if self._cfg is None:
+			return "text"
+		# Convert cursor to normalized [0,1] within display rect
+		nx = (pos.x() - self._display_rect.left()) / float(self._display_rect.width())
+		ny = (pos.y() - self._display_rect.top()) / float(self._display_rect.height())
+		# Clamp
+		nx = max(0.0, min(1.0, nx)); ny = max(0.0, min(1.0, ny))
+		tx, ty = self._cfg.layout.text_position
+		ix, iy = self._cfg.layout.image_position
+		# If a watermark type is disabled, prefer the enabled one
+		text_enabled = bool(self._cfg.layout.enabled_text)
+		image_enabled = bool(self._cfg.layout.enabled_image)
+		if text_enabled and not image_enabled:
+			return "text"
+		if image_enabled and not text_enabled:
+			return "image"
+		# Both enabled or both disabled: choose the nearer one
+		import math
+		d_text = math.hypot(nx - tx, ny - ty)
+		d_img = math.hypot(nx - ix, ny - iy)
+		return "text" if d_text <= d_img else "image"
 
 	def minimumSizeHint(self) -> QSize:  # type: ignore[override]
 		return QSize(500, 360)
@@ -46,18 +77,137 @@ class PreviewWidget(QWidget):
 		y = target.center().y() - scaled.height() // 2
 		self._display_rect = QRect(x, y, scaled.width(), scaled.height())
 		p.drawImage(self._display_rect, scaled)
+
+		# Overlay resize handles for image watermark
+		self._image_bbox = QRect()
+		if self._cfg.layout.enabled_image and (self._cfg.image.path or ""):
+			bbox = self._calc_image_bbox_on_display()
+			self._image_bbox = bbox
+			if bbox.width() > 4 and bbox.height() > 4:
+				p.save()
+				pen = QPen(QColor(14, 165, 233))  # cyan
+				pen.setWidth(2)
+				p.setPen(pen)
+				p.setBrush(Qt.NoBrush)
+				p.drawRect(bbox)
+				# Draw corner and edge handles
+				for cx, cy in self._handle_points(bbox):
+					p.fillRect(cx - 4, cy - 4, 8, 8, QColor(14, 165, 233))
+				p.restore()
 		p.end()
+
+	def _display_scale(self) -> float:
+		# ratio from base image to displayed image
+		if self._image.isNull() or self._display_rect.width() == 0 or self._display_rect.height() == 0:
+			return 1.0
+		return min(self._display_rect.width() / float(self._image.width()), self._display_rect.height() / float(self._image.height()))
+
+	def _calc_image_bbox_on_display(self) -> QRect:
+		from PySide6.QtGui import QImage as _QImg
+		path = self._cfg.image.path or ""
+		img = _QImg(path)
+		if img.isNull():
+			return QRect()
+		# Size on base image
+		shorter = min(self._image.width(), self._image.height())
+		base_w = max(1, int(shorter * self._cfg.image.scale))
+		sx = max(0.01, float(getattr(self._cfg.image, "scale_x", 1.0)))
+		sy = max(0.01, float(getattr(self._cfg.image, "scale_y", 1.0)))
+		w_base = max(1, int(base_w * sx))
+		h_base = max(1, int(img.height() * (w_base / float(img.width())) * sy))
+		# Map to display
+		s = self._display_scale()
+		w_disp = int(w_base * s)
+		h_disp = int(h_base * s)
+		# Centered at image position
+		cx = self._display_rect.left() + int(self._cfg.layout.image_position[0] * self._display_rect.width())
+		cy = self._display_rect.top() + int(self._cfg.layout.image_position[1] * self._display_rect.height())
+		return QRect(cx - w_disp // 2, cy - h_disp // 2, w_disp, h_disp)
+
+	def _handle_points(self, r: QRect) -> list[tuple[int,int]]:
+		# corners and mids: nw, ne, se, sw, n, e, s, w
+		cx = r.center().x(); cy = r.center().y()
+		return [
+			(r.left(), r.top()), (r.right(), r.top()), (r.right(), r.bottom()), (r.left(), r.bottom()),
+			(cx, r.top()), (r.right(), cy), (cx, r.bottom()), (r.left(), cy)
+		]
+
+	def _hit_handle(self, pos: QPoint) -> str | None:
+		if self._image_bbox.isNull():
+			return None
+		points = self._handle_points(self._image_bbox)
+		names = ["nw","ne","se","sw","n","e","s","w"]
+		for (x, y), name in zip(points, names):
+			if abs(pos.x() - x) <= 6 and abs(pos.y() - y) <= 6:
+				return name
+		return None
 
 	def mousePressEvent(self, e: QMouseEvent) -> None:  # type: ignore[override]
 		if e.button() == Qt.LeftButton:
-			self._dragging = True
 			self._last_mouse = e.pos()
+			# Prefer resizing if on a handle of image
+			if self._cfg.layout.enabled_image:
+				h = self._hit_handle(e.pos())
+				if h:
+					self._resizing = True
+					self._resize_handle = h
+					return
+			self._dragging = True
+			# Auto-pick drag target based on cursor
+			self._drag_target = self._pick_target_by_cursor(e.pos())
 
 	def mouseMoveEvent(self, e: QMouseEvent) -> None:  # type: ignore[override]
-		if not self._dragging or self._image.isNull():
+		if self._image.isNull():
 			return
 		delta = e.pos() - self._last_mouse
 		self._last_mouse = e.pos()
+		if self._resizing and self._resize_handle and self._cfg.layout.enabled_image and not self._image_bbox.isNull():
+			# Resize logic in display space -> update scale_x/scale_y
+			w0 = max(1, self._image_bbox.width())
+			h0 = max(1, self._image_bbox.height())
+			# Determine influence for each handle
+			dw = 0
+			dh = 0
+			if 'e' in self._resize_handle:
+				dw = delta.x()
+			elif 'w' in self._resize_handle:
+				dw = -delta.x()
+			if 's' in self._resize_handle:
+				dh = delta.y()
+			elif 'n' in self._resize_handle:
+				dh = -delta.y()
+			# Convert to scale ratios
+			sx_ratio = 1.0
+			sy_ratio = 1.0
+			if self._resize_handle in ("n","s"):
+				# vertical edge -> only height
+				sy_ratio = max(0.01, (h0 + dh) / float(h0))
+			elif self._resize_handle in ("e","w"):
+				# horizontal edge -> only width
+				sx_ratio = max(0.01, (w0 + dw) / float(w0))
+			else:
+				# corner -> proportional (both axes equal by default if Shift held; otherwise both change)
+				if QApplication.keyboardModifiers() & Qt.ShiftModifier:
+					# proportional: use larger magnitude change
+					ratio = max(0.01, (w0 + dw) / float(w0), (h0 + dh) / float(h0))
+					sx_ratio = ratio; sy_ratio = ratio
+				else:
+					sx_ratio = max(0.01, (w0 + dw) / float(w0))
+					sy_ratio = max(0.01, (h0 + dh) / float(h0))
+			# Map display ratios back to model scale multipliers
+			s = self._display_scale()
+			if s <= 0:
+				s = 1.0
+			# Since bbox already in display, ratios already correct; just multiply scale_x/y
+			self._cfg.image.scale_x = float(getattr(self._cfg.image, "scale_x", 1.0)) * sx_ratio
+			self._cfg.image.scale_y = float(getattr(self._cfg.image, "scale_y", 1.0)) * sy_ratio
+			# Recompute bbox origin to keep the opposite edge anchored visually: we accept slight drift for simplicity
+			self.update()
+			self.configChanged.emit(self._cfg)
+			return
+
+		if not self._dragging:
+			return
 		if self._display_rect.width() > 0 and self._display_rect.height() > 0:
 			nx = delta.x() / float(self._display_rect.width())
 			ny = delta.y() / float(self._display_rect.height())
@@ -69,13 +219,39 @@ class PreviewWidget(QWidget):
 			else:
 				self._cfg.layout.image_position = (px, py)
 			self.update()
+			self.configChanged.emit(self._cfg)
 
 	def mouseReleaseEvent(self, e: QMouseEvent) -> None:  # type: ignore[override]
 		if e.button() == Qt.LeftButton:
 			self._dragging = False
+			self._resizing = False
+			self._resize_handle = None
 
 	def wheelEvent(self, e: QWheelEvent) -> None:  # type: ignore[override]
+		# Ctrl + wheel rotates entire watermark layout
 		if e.modifiers() & Qt.ControlModifier:
 			angle_delta = e.angleDelta().y() / 8.0
 			self._cfg.layout.rotation_deg = (self._cfg.layout.rotation_deg + angle_delta) % 360
 			self.update()
+			self.configChanged.emit(self._cfg)
+			return
+		# Otherwise, scale the nearest enabled watermark to cursor
+		target = self._pick_target_by_cursor(e.position().toPoint())
+		delta_steps = int(e.angleDelta().y() / 120)  # 1 step per notch
+		if delta_steps == 0:
+			return
+		if target == "text" and self._cfg.layout.enabled_text:
+			# Change font size by 1pt per notch
+			new_size = max(8, min(128, int(self._cfg.text.size_pt + delta_steps)))
+			if new_size != self._cfg.text.size_pt:
+				self._cfg.text.size_pt = new_size
+				self.update()
+				self.configChanged.emit(self._cfg)
+		elif target == "image" and self._cfg.layout.enabled_image:
+			# Change image scale by 1% per notch (5%..300%)
+			current_percent = int(round(self._cfg.image.scale * 100))
+			new_percent = max(5, min(300, current_percent + delta_steps))
+			if new_percent != current_percent:
+				self._cfg.image.scale = max(0.01, new_percent / 100.0)
+				self.update()
+				self.configChanged.emit(self._cfg)

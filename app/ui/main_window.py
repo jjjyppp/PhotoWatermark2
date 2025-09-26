@@ -23,10 +23,11 @@ class MainWindow(QMainWindow):
 		self.resize(1440, 900)
 
 		self.image_list = ImageListWidget(self)
-		self.image_list.setMinimumWidth(220)
+		self.image_list.setMinimumWidth(200)
 		self.preview = PreviewWidget(self)
 		self.controls = ControlsPanel(self)
-		self.controls.setMinimumWidth(320)
+		# Fix controls panel width; allow collapse via splitter but not resizing width
+		self.controls.setFixedWidth(460)
 		self._engine = WatermarkEngine()
 
 		self._per_image_cfg: dict[str, WatermarkConfig] = {}
@@ -40,7 +41,9 @@ class MainWindow(QMainWindow):
 		splitter.setStretchFactor(0, 0)
 		splitter.setStretchFactor(1, 1)
 		splitter.setStretchFactor(2, 0)
-		splitter.setSizes([260, 920, 360])
+		# Allow the right controls panel to collapse/expand but keep a fixed width otherwise
+		splitter.setCollapsible(2, True)
+		splitter.setSizes([220, 760, 460])
 
 		container = QWidget(self)
 		layout = QHBoxLayout(container)
@@ -57,7 +60,8 @@ class MainWindow(QMainWindow):
 		self.controls.configChanged.connect(self._on_controls_changed)
 		self.controls.applyTemplateToSelected.connect(self._on_apply_template_to_selected)
 		self.controls.applyTemplateToAll.connect(self._on_apply_template_to_all)
-		self.controls.dragTargetChanged.connect(self.preview.setDragTarget)
+		self.preview.configChanged.connect(self._on_preview_changed)
+		# dragTargetChanged no longer used; preview determines target by cursor
 
 		last = load_last_settings()
 		if last:
@@ -134,6 +138,13 @@ class MainWindow(QMainWindow):
 		if self._current_path:
 			self._per_image_cfg[self._current_path] = deepcopy(cfg)
 			self.preview.updateConfig(cfg)
+
+	def _on_preview_changed(self, cfg: WatermarkConfig) -> None:
+		# Sync preview-side changes (drag/rotate) back into current per-image config and controls
+		if self._current_path:
+			self._per_image_cfg[self._current_path] = deepcopy(cfg)
+			# Update controls without emitting
+			self.controls.setConfig(deepcopy(cfg))
 
 	def _apply_to_selected(self) -> None:
 		paths = self.image_list.get_selected_paths()

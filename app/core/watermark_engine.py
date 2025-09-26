@@ -96,10 +96,16 @@ class WatermarkEngine:
 			pix = pm
 
 		shorter = min(base.width(), base.height())
-		w = int(shorter * cfg.image.scale)
-		if w <= 0:
-			return
-		scaled = pix.scaledToWidth(w, Qt.SmoothTransformation)
+		# Base width from uniform scale
+		base_w = max(1, int(shorter * cfg.image.scale))
+		# Apply non-uniform multipliers
+		sx = max(0.01, float(getattr(cfg.image, "scale_x", 1.0)))
+		sy = max(0.01, float(getattr(cfg.image, "scale_y", 1.0)))
+		w = max(1, int(base_w * sx))
+		# Compute height preserving pixmap aspect then apply sy
+		scaled_w = pix.scaledToWidth(w, Qt.SmoothTransformation)
+		h = max(1, int(scaled_w.height() * sy))
+		scaled = pix.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
 
 		p.save()
 		p.setOpacity(cfg.image.opacity)
