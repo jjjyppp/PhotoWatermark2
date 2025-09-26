@@ -14,7 +14,7 @@ class TextWatermark:
 	size_pt: int = 32
 	bold: bool = False
 	italic: bool = False
-	color: Color = (255, 255, 255, 191)
+	color: Color = (0, 0, 0, 255)
 	shadow: bool = False
 	outline: bool = False
 	outline_color: Color = (0, 0, 0, 160)

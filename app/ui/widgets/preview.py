@@ -20,6 +20,7 @@ class PreviewWidget(QWidget):
 		self._display_rect = QRect()
 		self._drag_target = "text"  # or "image"
 		self._image_bbox = QRect()  # image watermark bbox on display
+		self._image_selected = False  # show handles only when selected
 
 	def setDragTarget(self, target: str) -> None:
 		# Deprecated: target is chosen automatically based on cursor position
@@ -78,12 +79,12 @@ class PreviewWidget(QWidget):
 		self._display_rect = QRect(x, y, scaled.width(), scaled.height())
 		p.drawImage(self._display_rect, scaled)
 
-		# Overlay resize handles for image watermark
+		# Overlay resize handles for image watermark (only when selected)
 		self._image_bbox = QRect()
 		if self._cfg.layout.enabled_image and (self._cfg.image.path or ""):
 			bbox = self._calc_image_bbox_on_display()
 			self._image_bbox = bbox
-			if bbox.width() > 4 and bbox.height() > 4:
+			if self._image_selected and bbox.width() > 4 and bbox.height() > 4:
 				p.save()
 				pen = QPen(QColor(14, 165, 233))  # cyan
 				pen.setWidth(2)
@@ -145,16 +146,26 @@ class PreviewWidget(QWidget):
 	def mousePressEvent(self, e: QMouseEvent) -> None:  # type: ignore[override]
 		if e.button() == Qt.LeftButton:
 			self._last_mouse = e.pos()
-			# Prefer resizing if on a handle of image
+		# Prefer resizing if on a handle of image; clicking image selects it
 			if self._cfg.layout.enabled_image:
+				# Update bbox to test selection/hit
+				self._image_bbox = self._calc_image_bbox_on_display()
 				h = self._hit_handle(e.pos())
 				if h:
 					self._resizing = True
 					self._resize_handle = h
+					self._image_selected = True
 					return
+				# Click inside image bbox selects it
+				if not self._image_bbox.isNull() and self._image_bbox.contains(e.pos()):
+					self._image_selected = True
+				else:
+					# If clicked elsewhere and current target is not image, deselect
+					self._image_selected = False
 			self._dragging = True
-			# Auto-pick drag target based on cursor
-			self._drag_target = self._pick_target_by_cursor(e.pos())
+			# Auto-pick drag target based on cursor; selection is controlled only by direct clicks (handles/bbox)
+			target = self._pick_target_by_cursor(e.pos())
+			self._drag_target = target
 
 	def mouseMoveEvent(self, e: QMouseEvent) -> None:  # type: ignore[override]
 		if self._image.isNull():

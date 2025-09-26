@@ -84,6 +84,8 @@ class ControlsPanel(QWidget):
 
 		row_color = QHBoxLayout(); row_color.setSpacing(4); row_color.addWidget(QLabel("颜色"))
 		self.cmb_color = QComboBox(); self.cmb_color.addItems(["白(半透)", "黑", "红", "绿", "蓝"]) ; self.cmb_color.currentIndexChanged.connect(self._on_color)
+		# 默认改为黑色
+		self.cmb_color.setCurrentIndex(1)
 		btn_pick = AutoFitButton("自定义颜色…"); btn_pick.clicked.connect(self._pick_color)
 		row_color.addWidget(self.cmb_color); row_color.addWidget(btn_pick)
 		layout.addLayout(row_color)
@@ -105,10 +107,10 @@ class ControlsPanel(QWidget):
 		line2 = QFrame(); line2.setFrameShape(QFrame.HLine); layout.addWidget(line2)
 
 		# Image watermark
-		chk_img = QCheckBox("启用图片水印")
-		chk_img.setChecked(self._cfg.layout.enabled_image)
-		chk_img.stateChanged.connect(lambda s: self._set_enabled_image(bool(s)))
-		layout.addWidget(chk_img)
+		self.chk_img = QCheckBox("启用图片水印")
+		self.chk_img.setChecked(self._cfg.layout.enabled_image)
+		self.chk_img.stateChanged.connect(lambda s: self._set_enabled_image(bool(s)))
+		layout.addWidget(self.chk_img)
 
 		btn_logo = AutoFitButton("选择图片水印(支持PNG透明)…"); btn_logo.clicked.connect(self._pick_logo)
 		layout.addWidget(btn_logo)
@@ -191,6 +193,14 @@ class ControlsPanel(QWidget):
 		self.spin_fs.setValue(cfg.text.size_pt)
 		self.slider_text_op.setValue(int(cfg.text.color[3]*100/255))
 		self.spin_text_op.setValue(int(cfg.text.color[3]*100/255))
+		# 同步颜色下拉默认值：黑色(1)或白(半透)(0)
+		try:
+			if tuple(cfg.text.color) == (0, 0, 0, 255):
+				self.cmb_color.setCurrentIndex(1)
+			elif tuple(cfg.text.color) == (255, 255, 255, 191):
+				self.cmb_color.setCurrentIndex(0)
+		except Exception:
+			pass
 		self.slider_scale.setValue(int(cfg.image.scale*100))
 		self.spin_scale.setValue(cfg.image.scale*100)
 		self.slider_logo_op.setValue(int(cfg.image.opacity*100))
@@ -294,6 +304,9 @@ class ControlsPanel(QWidget):
 		if path:
 			self._cfg.image.path = path
 			self._cfg.layout.enabled_image = True
+			# Reflect in UI checkbox
+			if hasattr(self, "chk_img") and isValid(self.chk_img):
+				self.chk_img.setChecked(True)
 			self._emit()
 
 	def _on_logo_scale(self, v: int) -> None:

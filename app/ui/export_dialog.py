@@ -75,12 +75,13 @@ class ExportDialog(QDialog):
 			self.edit_affix.setVisible(False)
 		elif t == "prefix":
 			self.edit_affix.setVisible(True)
+			# 切换到前缀时，如为空则给默认前缀
 			if not self.edit_affix.text().strip():
 				self.edit_affix.setText("wm_")
 		else:
 			self.edit_affix.setVisible(True)
-			if not self.edit_affix.text().strip():
-				self.edit_affix.setText("_watermarked")
+			# 切换到后缀时，无论是否有内容，都改为标准默认值
+			self.edit_affix.setText("_watermarked")
 
 	def options(self) -> ExportOptions:
 		opts = ExportOptions()
