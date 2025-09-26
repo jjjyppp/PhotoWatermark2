@@ -109,7 +109,8 @@ class MainWindow(QMainWindow):
 		self.preview.onImageSelected(path)
 		cfg = self._per_image_cfg.get(path)
 		if cfg is None:
-			cfg = deepcopy(self.controls._cfg)
+			# 创建全新的默认配置，而不是基于当前控件配置的副本
+			cfg = WatermarkConfig()
 			self._per_image_cfg[path] = cfg
 		self.controls.setConfig(cfg)
 		self.preview.updateConfig(cfg)

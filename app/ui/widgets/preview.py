@@ -26,12 +26,12 @@ class PreviewWidget(QWidget):
 		# Deprecated: target is chosen automatically based on cursor position
 		self._drag_target = target if target in ("text","image") else "text"
 
-	def _pick_target_by_cursor(self, pos: QPoint) -> str:
+	def _pick_target_by_cursor(self, pos: QPoint) -> str | None:
 		# Determine which watermark (text/image) is closer to the cursor within the display rect
 		if self._display_rect.width() <= 0 or self._display_rect.height() <= 0:
-			return "text"
+			return None
 		if self._cfg is None:
-			return "text"
+			return None
 		# Convert cursor to normalized [0,1] within display rect
 		nx = (pos.x() - self._display_rect.left()) / float(self._display_rect.width())
 		ny = (pos.y() - self._display_rect.top()) / float(self._display_rect.height())
@@ -42,15 +42,36 @@ class PreviewWidget(QWidget):
 		# If a watermark type is disabled, prefer the enabled one
 		text_enabled = bool(self._cfg.layout.enabled_text)
 		image_enabled = bool(self._cfg.layout.enabled_image)
-		if text_enabled and not image_enabled:
-			return "text"
-		if image_enabled and not text_enabled:
-			return "image"
-		# Both enabled or both disabled: choose the nearer one
+		# Add distance threshold (0.15 is a reasonable threshold - 15% of display size)
 		import math
-		d_text = math.hypot(nx - tx, ny - ty)
-		d_img = math.hypot(nx - ix, ny - iy)
-		return "text" if d_text <= d_img else "image"
+		threshold = 0.15
+		
+		# Check if text is enabled and cursor is within threshold
+		text_in_range = False
+		if text_enabled:
+			d_text = math.hypot(nx - tx, ny - ty)
+			text_in_range = d_text <= threshold
+		
+		# Check if image is enabled and cursor is within threshold
+		image_in_range = False
+		if image_enabled:
+			d_img = math.hypot(nx - ix, ny - iy)
+			image_in_range = d_img <= threshold
+		
+		# If both are enabled and in range, pick the closer one
+		if text_in_range and image_in_range:
+			d_text = math.hypot(nx - tx, ny - ty)
+			d_img = math.hypot(nx - ix, ny - iy)
+			return "text" if d_text <= d_img else "image"
+		# If only text is in range
+		elif text_in_range:
+			return "text"
+		# If only image is in range
+		elif image_in_range:
+			return "image"
+		# If neither is in range, return None
+		else:
+			return None
 
 	def minimumSizeHint(self) -> QSize:  # type: ignore[override]
 		return QSize(500, 360)
@@ -162,10 +183,13 @@ class PreviewWidget(QWidget):
 				else:
 					# If clicked elsewhere and current target is not image, deselect
 					self._image_selected = False
-			self._dragging = True
 			# Auto-pick drag target based on cursor; selection is controlled only by direct clicks (handles/bbox)
-			target = self._pick_target_by_cursor(e.pos())
+		target = self._pick_target_by_cursor(e.pos())
+		if target:
+			self._dragging = True
 			self._drag_target = target
+		else:
+			self._dragging = False
 
 	def mouseMoveEvent(self, e: QMouseEvent) -> None:  # type: ignore[override]
 		if self._image.isNull():

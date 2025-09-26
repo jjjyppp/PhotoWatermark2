@@ -43,7 +43,7 @@ class WatermarkLayout:
 	# Separate rotations
 	text_rotation_deg: float = 0.0
 	image_rotation_deg: float = 0.0
-	enabled_text: bool = True
+	enabled_text: bool = False
 	enabled_image: bool = False
 
 

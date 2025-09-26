@@ -51,10 +51,10 @@ class ControlsPanel(QWidget):
 		line = QFrame(); line.setFrameShape(QFrame.HLine); layout.addWidget(line)
 
 		# Text watermark
-		chk_text = QCheckBox("启用文本水印")
-		chk_text.setChecked(self._cfg.layout.enabled_text)
-		chk_text.stateChanged.connect(lambda s: self._set_enabled_text(bool(s)))
-		layout.addWidget(chk_text)
+		self.chk_text = QCheckBox("启用文本水印")
+		self.chk_text.setChecked(self._cfg.layout.enabled_text)
+		self.chk_text.stateChanged.connect(lambda s: self._set_enabled_text(bool(s)))
+		layout.addWidget(self.chk_text)
 
 		self.txt_input = QLineEdit(self._cfg.text.text)
 		self.txt_input.setPlaceholderText("输入水印文本…")
@@ -201,10 +201,15 @@ class ControlsPanel(QWidget):
 		if not hasattr(self, "_ready") or not self._ready:
 			return
 		# guard widgets validity
-		for w in [getattr(self, n, None) for n in ["txt_input","font_combo","chk_bold","chk_italic","slider_fs","slider_text_op","slider_scale","spin_scale","slider_logo_op","slider_rot_text","slider_rot_img","pos_combo_text","pos_combo_img"]]:
+		for w in [getattr(self, n, None) for n in ["txt_input","font_combo","chk_bold","chk_italic","slider_fs","slider_text_op","slider_scale","spin_scale","slider_logo_op","slider_rot_text","slider_rot_img","pos_combo_text","pos_combo_img","chk_text","chk_img"]]:
 			if w is None or not isValid(w):
 				return
 		self._cfg = cfg
+		# 更新文本水印复选框状态
+		self.chk_text.setChecked(cfg.layout.enabled_text)
+		# 更新图片水印复选框状态
+		self.chk_img.setChecked(cfg.layout.enabled_image)
+		
 		self.txt_input.setText(cfg.text.text)
 		self.font_combo.setCurrentFont(QFont(cfg.text.family))
 		self.chk_bold.setChecked(cfg.text.bold)
@@ -320,6 +325,9 @@ class ControlsPanel(QWidget):
 	# image controls
 	def _set_enabled_image(self, enabled: bool) -> None:
 		self._cfg.layout.enabled_image = enabled
+		# 当第一次勾选启用图片水印时，触发选择图片对话框
+		if enabled and not self._cfg.image.path:
+			self._pick_logo()
 		self._emit()
 
 	def _pick_logo(self) -> None:
