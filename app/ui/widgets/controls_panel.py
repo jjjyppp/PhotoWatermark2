@@ -235,28 +235,33 @@ class ControlsPanel(QWidget):
 		self.spin_rot_text.setValue(float(getattr(cfg.layout, "text_rotation_deg", 0.0) if getattr(cfg.layout, "text_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
 		self.slider_rot_img.setValue(int(getattr(cfg.layout, "image_rotation_deg", 0.0) if getattr(cfg.layout, "image_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
 		self.spin_rot_img.setValue(float(getattr(cfg.layout, "image_rotation_deg", 0.0) if getattr(cfg.layout, "image_rotation_deg", 0.0) != 0.0 else getattr(cfg.layout, "rotation_deg", 0.0)))
-		# update pos combo robustly
+		# 不再强制将位置映射到最近的九宫格点，允许自由拖拽到任意位置
+		# 仅在位置确实匹配九宫格点时才更新下拉框，否则保持当前选择不变
 		presets = [
 			(0.1,0.1),(0.5,0.1),(0.9,0.1),
 			(0.1,0.5),(0.5,0.5),(0.9,0.5),
 			(0.1,0.9),(0.5,0.9),(0.9,0.9),
 		]
-		def nearest_idx(pos):
+		def find_exact_match(pos):
 			try:
 				pos_t = tuple(pos)
 			except Exception:
 				pos_t = (0.5, 0.5)
-			if pos_t in presets:
-				return presets.index(pos_t)
-			px, py = float(pos_t[0]), float(pos_t[1])
-			best = 0; best_d = 1e9
+			# 只在位置与预设点完全匹配时才返回索引
 			for i, (x, y) in enumerate(presets):
-				d = math.hypot(px - x, py - y)
-				if d < best_d:
-					best_d = d; best = i
-			return best
-		self.pos_combo_text.setCurrentIndex(nearest_idx(cfg.layout.text_position or cfg.layout.position))
-		self.pos_combo_img.setCurrentIndex(nearest_idx(cfg.layout.image_position or cfg.layout.position))
+				if abs(x - pos_t[0]) < 0.01 and abs(y - pos_t[1]) < 0.01:
+					return i
+			# 否则不改变当前选择
+			return -1
+		
+		# 仅在找到完全匹配的预设点时才更新下拉框
+		text_idx = find_exact_match(cfg.layout.text_position or cfg.layout.position)
+		if text_idx != -1:
+			self.pos_combo_text.setCurrentIndex(text_idx)
+		
+		img_idx = find_exact_match(cfg.layout.image_position or cfg.layout.position)
+		if img_idx != -1:
+			self.pos_combo_img.setCurrentIndex(img_idx)
 		# Do not emit here to avoid re-entrant updates during initialization
 
 	def _emit(self) -> None:
