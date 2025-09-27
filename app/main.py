@@ -47,6 +47,10 @@ def main() -> int:
 		default_cfg.text.size_px = 16
 		# 确保图片缩放为30%
 		default_cfg.image.scale = 0.3
+		# 确保图片透明度为75%
+		default_cfg.image.opacity = 0.75
+		# 确保图片旋转为0度
+		default_cfg.layout.image_rotation_deg = 0.0
 		# 确保位置为正中
 		default_cfg.layout.text_position = (0.5, 0.5)
 		default_cfg.layout.image_position = (0.5, 0.5)
@@ -59,8 +63,10 @@ def main() -> int:
 			cfg_to_use.layout.enabled_text = False
 			cfg_to_use.layout.enabled_image = False
 			cfg_to_use.text.size_px = 16
-			# 强制应用图片缩放为30%和位置为正中的设置
+			# 强制应用图片缩放为30%、透明度为75%和位置为正中的设置
 			cfg_to_use.image.scale = 0.3
+			cfg_to_use.image.opacity = 0.75
+			cfg_to_use.layout.image_rotation_deg = 0.0
 			cfg_to_use.layout.text_position = (0.5, 0.5)
 			cfg_to_use.layout.image_position = (0.5, 0.5)
 		else:

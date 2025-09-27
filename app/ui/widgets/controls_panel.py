@@ -236,7 +236,7 @@ class ControlsPanel(QWidget):
 		if not hasattr(self, "_ready") or not self._ready:
 			return
 		# guard widgets validity
-		for w in [getattr(self, n, None) for n in ["txt_input","font_combo","chk_bold","chk_italic","slider_fs","slider_text_op","slider_scale","spin_scale","slider_logo_op","slider_rot_text","slider_rot_img","pos_combo_text","pos_combo_img","chk_text","chk_img"]]:
+		for w in [getattr(self, n, None) for n in ["txt_input","font_combo","chk_bold","chk_italic","slider_fs","slider_text_op","slider_scale","spin_scale","slider_logo_op","slider_rot_text","slider_rot_img","pos_combo_text","pos_combo_img","chk_text","chk_img","chk_shadow","chk_outline"]]:
 			if w is None or not isValid(w):
 				return
 		self._cfg = cfg
@@ -249,6 +249,8 @@ class ControlsPanel(QWidget):
 		self.font_combo.setCurrentFont(QFont(cfg.text.family))
 		self.chk_bold.setChecked(cfg.text.bold)
 		self.chk_italic.setChecked(cfg.text.italic)
+		self.chk_shadow.setChecked(cfg.text.shadow)
+		self.chk_outline.setChecked(cfg.text.outline)
 		self.slider_fs.setValue(getattr(cfg.text, "size_px", 16))
 		self.spin_fs.setValue(getattr(cfg.text, "size_px", 16))
 		self.slider_text_op.setValue(int(cfg.text.color[3]*100/255))
@@ -261,6 +263,8 @@ class ControlsPanel(QWidget):
 				self.cmb_color.setCurrentIndex(0)
 		except Exception:
 			pass
+		# 更新颜色预览
+		self._update_color_preview()
 		self.slider_scale.setValue(int(cfg.image.scale*100))
 		self.spin_scale.setValue(cfg.image.scale*100)
 		self.slider_logo_op.setValue(int(cfg.image.opacity*100))
@@ -492,6 +496,7 @@ class ControlsPanel(QWidget):
 		cfg = load_template(path)
 		if cfg:
 			self._cfg = cfg
+			self.setConfig(cfg)  # 调用setConfig方法更新所有UI控件
 			self._emit()
 
 	def _on_tpl_context(self, pos: QPoint) -> None:
