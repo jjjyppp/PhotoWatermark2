@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QLineEdit, QHBoxLayout, QSlider, QFileDialog, QComboBox, QCheckBox, QFontComboBox, QListWidget, QColorDialog, QMenu, QInputDialog, QGridLayout, QDoubleSpinBox, QScrollArea
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QLineEdit, QHBoxLayout, QSlider, QFileDialog, QComboBox, QCheckBox, QFontComboBox, QListWidget, QListWidgetItem, QColorDialog, QMenu, QInputDialog, QGridLayout, QDoubleSpinBox, QScrollArea
 from PySide6.QtCore import Qt, Signal, QPoint
 
 import os
@@ -173,13 +173,15 @@ class ControlsPanel(QWidget):
 		# Templates with apply buttons
 		row_tpl_head = QHBoxLayout(); row_tpl_head.setSpacing(4)
 		self.btn_save_tpl = AutoFitButton("保存模板…"); self.btn_save_tpl.clicked.connect(self._save_template)
-		self.btn_reload_tpls = AutoFitButton("刷新模板"); self.btn_reload_tpls.clicked.connect(self._reload_templates)
-		row_tpl_head.addWidget(self.btn_save_tpl); row_tpl_head.addWidget(self.btn_reload_tpls)
+		self.btn_load_tpl = AutoFitButton("加载模板"); self.btn_load_tpl.clicked.connect(self._load_template)
+		row_tpl_head.addWidget(self.btn_save_tpl); row_tpl_head.addWidget(self.btn_load_tpl)
 		layout.addLayout(row_tpl_head)
 
 		self.list_tpls = QListWidget(); self.list_tpls.itemDoubleClicked.connect(self._apply_selected_template)
 		self.list_tpls.setContextMenuPolicy(Qt.CustomContextMenu)
 		self.list_tpls.customContextMenuRequested.connect(self._on_tpl_context)
+		# 增加模板列表高度，显示更多模板
+		self.list_tpls.setMinimumHeight(300)
 		layout.addWidget(self.list_tpls)
 
 		row_tpl_apply = QHBoxLayout(); row_tpl_apply.setSpacing(4)
@@ -378,16 +380,57 @@ class ControlsPanel(QWidget):
 			return
 		if not name.lower().endswith(".json"):
 			name = name + ".json"
-		save_template(os.path.splitext(os.path.basename(name))[0], self._cfg)
+		template_name = os.path.splitext(os.path.basename(name))[0]
+		template_path = save_template(template_name, self._cfg)
+		
+		# 询问是否设为默认模板
+		from PySide6.QtWidgets import QMessageBox
+		result = QMessageBox.question(self, "设为默认模板", "是否将此模板设为默认模板？程序启动时将自动加载。")
+		if result == QMessageBox.Yes:
+			from app.core.templates import set_default_template
+			set_default_template(template_path)
+		
 		self._reload_templates()
+		
+	def _load_template(self) -> None:
+		from PySide6.QtWidgets import QFileDialog
+		from app.core.templates import get_templates_dir
+		path, _ = QFileDialog.getOpenFileName(self, "选择模板文件", get_templates_dir(), "Template (*.json)")
+		if not path:
+			return
+		
+		from app.core.templates import load_template
+		cfg = load_template(path)
+		if cfg:
+			self._cfg = cfg
+			self._emit()
 
 	def _reload_templates(self) -> None:
 		self.list_tpls.clear()
+		# 获取默认模板路径
+		from app.core.templates import get_default_template_path
+		default_path = get_default_template_path()
+		
+		# 遍历所有模板
 		for p in list_templates():
-			self.list_tpls.addItem(p)
+			# 获取文件名（不含扩展名）作为模板名称
+			name = os.path.splitext(os.path.basename(p))[0]
+			# 检查是否是默认模板
+			if os.path.normpath(p) == os.path.normpath(default_path):
+				name = f"{name} (default)"
+			# 创建列表项并存储完整路径
+			item = QListWidgetItem(name)
+			item.setData(Qt.UserRole, p)  # 存储完整路径在UserData中
+			self.list_tpls.addItem(item)
+		
+	def _get_templates_dir(self) -> str:
+		from app.core.templates import get_templates_dir
+		return get_templates_dir()
 
 	def _apply_selected_template(self, item) -> None:
-		cfg = load_template(item.text())
+		# 从UserData获取完整路径
+		path = item.data(Qt.UserRole)
+		cfg = load_template(path)
 		if cfg:
 			self._cfg = cfg
 			self._emit()
@@ -403,7 +446,8 @@ class ControlsPanel(QWidget):
 		a = menu.exec(self.list_tpls.mapToGlobal(pos))
 		if not a:
 			return
-		path = item.text()
+		# 从UserData获取完整路径
+		path = item.data(Qt.UserRole)
 		if a == a_apply:
 			self._apply_selected_template(item)
 		elif a == a_rename:
@@ -438,10 +482,14 @@ class ControlsPanel(QWidget):
 		item = self.list_tpls.currentItem()
 		if not item:
 			return
-		self.applyTemplateToSelected.emit(item.text())
+		# 从UserData获取完整路径
+		path = item.data(Qt.UserRole)
+		self.applyTemplateToSelected.emit(path)
 
 	def _apply_template_to_all(self) -> None:
 		item = self.list_tpls.currentItem()
 		if not item:
 			return
-		self.applyTemplateToAll.emit(item.text())
+		# 从UserData获取完整路径
+		path = item.data(Qt.UserRole)
+		self.applyTemplateToAll.emit(path)

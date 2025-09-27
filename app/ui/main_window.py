@@ -9,7 +9,7 @@ from .widgets.image_list import ImageListWidget
 from .widgets.preview import PreviewWidget
 from .widgets.controls_panel import ControlsPanel
 from .export_dialog import ExportDialog
-from app.core.templates import load_last_settings, load_template
+from app.core.templates import load_last_settings, load_template, save_session_state, load_session_state
 from app.core.models import ExportOptions, WatermarkConfig
 from app.core.watermark_engine import WatermarkEngine
 from PySide6.QtGui import QImage
@@ -63,10 +63,8 @@ class MainWindow(QMainWindow):
 		self.preview.configChanged.connect(self._on_preview_changed)
 		# dragTargetChanged no longer used; preview determines target by cursor
 
-		last = load_last_settings()
-		if last:
-			self.preview.updateConfig(last)
-			QTimer.singleShot(0, lambda l=last: self.controls.setConfig(l))
+		# 加载保存的会话状态（图片列表和水印设置）
+		self._load_session_state()
 
 	def _setup_menu(self) -> None:
 		menu = self.menuBar() if self.menuBar() else QMenuBar(self)
@@ -250,3 +248,40 @@ class MainWindow(QMainWindow):
 		elif opts.scale_mode == "both":
 			return img.scaled(int(opts.scale_value), int(opts.scale_height), Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
 		return img
+
+	def closeEvent(self, event) -> None:
+		"""程序关闭时保存会话状态"""
+		# 保存图片列表和水印设置
+		image_paths = self.image_list.get_all_paths()
+		save_session_state(image_paths, self._per_image_cfg)
+		super().closeEvent(event)
+
+	def _load_session_state(self) -> None:
+		"""加载会话状态（图片列表和水印设置）"""
+		session_data = load_session_state()
+		if not session_data:
+			return
+
+		# 加载图片列表
+		image_paths = session_data.get("image_paths", [])
+		if image_paths:
+			for path in image_paths:
+				if os.path.exists(path):
+					self.image_list.add_image(path)
+
+		# 加载每个图片的水印设置
+		per_image_configs = session_data.get("per_image_configs", {})
+		for path, config_data in per_image_configs.items():
+			if os.path.exists(path) and path in self.image_list.get_all_paths():
+				try:
+					# 转换字典为 WatermarkConfig 对象
+					from app.core.templates import _from_dict
+					config = _from_dict(config_data)
+					self._per_image_cfg[path] = config
+				except Exception:
+					continue
+
+		# 如果有图片，自动选择第一张
+		if self.image_list.get_all_paths():
+			first_path = self.image_list.get_all_paths()[0]
+			self.image_list.list.setCurrentRow(0)
