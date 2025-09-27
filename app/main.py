@@ -37,12 +37,38 @@ def main() -> int:
 	window = MainWindow(load_session=should_load_session)
 	
 	if not should_load_session:
-		# 不加载会话状态，尝试加载默认模板
+		# 不加载会话状态，设置默认配置
+		# 创建一个新的默认配置对象
+		default_cfg = WatermarkConfig()
+		# 确保不启用文字和图片水印
+		default_cfg.layout.enabled_text = False
+		default_cfg.layout.enabled_image = False
+		# 确保字号为16
+		default_cfg.text.size_px = 16
+		# 确保图片缩放为30%
+		default_cfg.image.scale = 0.3
+		# 确保位置为正中
+		default_cfg.layout.text_position = (0.5, 0.5)
+		default_cfg.layout.image_position = (0.5, 0.5)
+		
+		# 尝试加载默认模板，如果存在则使用它
 		default_template = load_default_template()
 		if default_template:
-			# 使用计时器异步设置默认模板，避免阻塞UI初始化
-			QTimer.singleShot(0, lambda cfg=default_template: window.preview.updateConfig(cfg))
-			QTimer.singleShot(0, lambda cfg=default_template: window.controls.setConfig(cfg))
+			# 即使使用默认模板，也强制应用我们的默认设置
+			cfg_to_use = default_template
+			cfg_to_use.layout.enabled_text = False
+			cfg_to_use.layout.enabled_image = False
+			cfg_to_use.text.size_px = 16
+			# 强制应用图片缩放为30%和位置为正中的设置
+			cfg_to_use.image.scale = 0.3
+			cfg_to_use.layout.text_position = (0.5, 0.5)
+			cfg_to_use.layout.image_position = (0.5, 0.5)
+		else:
+			cfg_to_use = default_cfg
+		
+		# 使用计时器异步设置配置，避免阻塞UI初始化
+		QTimer.singleShot(0, lambda cfg=cfg_to_use: window.preview.updateConfig(cfg))
+		QTimer.singleShot(0, lambda cfg=cfg_to_use: window.controls.setConfig(cfg))
 	else:
 		# 加载会话状态（由MainWindow的初始化方法自动处理）
 		pass

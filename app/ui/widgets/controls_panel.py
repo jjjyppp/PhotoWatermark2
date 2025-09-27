@@ -18,12 +18,24 @@ class ControlsPanel(QWidget):
 	applyTemplateToSelected = Signal(str)
 	applyTemplateToAll = Signal(str)
 	dragTargetChanged = Signal(str)  # 'text' or 'image'
+	exportClicked = Signal()  # 新增导出按钮点击信号
 
 	def __init__(self, parent=None) -> None:
 		super().__init__(parent)
 		# Wider panel to avoid cramped rows
 		self.setMinimumWidth(420)
+		# 创建配置对象并设置默认值
 		self._cfg = WatermarkConfig()
+		# 确保不启用文字和图片水印
+		self._cfg.layout.enabled_text = False
+		self._cfg.layout.enabled_image = False
+		# 确保字号为16
+		self._cfg.text.size_px = 16
+		# 确保图片缩放为30%
+		self._cfg.image.scale = 0.3
+		# 确保位置为正中
+		self._cfg.layout.text_position = (0.5, 0.5)
+		self._cfg.layout.image_position = (0.5, 0.5)
 		self._ready = True
 
 		scroll = QScrollArea(self)
@@ -175,6 +187,9 @@ class ControlsPanel(QWidget):
 
 		row_pos_i = QHBoxLayout(); row_pos_i.setSpacing(4); row_pos_i.addWidget(QLabel("图片位置"))
 		self.pos_combo_img = QComboBox(); self.pos_combo_img.addItems(["左上","中上","右上","左中","正中","右中","左下","中下","右下"]) ; self.pos_combo_img.currentIndexChanged.connect(self._on_pos_image)
+		# 设置默认位置为正中
+		self.pos_combo_text.setCurrentIndex(4)
+		self.pos_combo_img.setCurrentIndex(4)
 		row_pos_i.addWidget(self.pos_combo_img)
 		layout.addLayout(row_pos_i)
 
@@ -199,6 +214,14 @@ class ControlsPanel(QWidget):
 		btn_apply_all = AutoFitButton("应用到全部"); btn_apply_all.clicked.connect(self._apply_template_to_all)
 		row_tpl_apply.addWidget(btn_apply_sel); row_tpl_apply.addWidget(btn_apply_all)
 		layout.addLayout(row_tpl_apply)
+
+		line = QFrame(); line.setFrameShape(QFrame.HLine); layout.addWidget(line)
+
+		# 添加导出按钮
+		btn_export = AutoFitButton("导出图片…")
+		btn_export.setMinimumHeight(36)
+		btn_export.clicked.connect(self.exportClicked.emit)
+		layout.addWidget(btn_export)
 
 		self._reload_templates()
 		layout.addStretch(1)

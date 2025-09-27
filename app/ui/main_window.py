@@ -61,6 +61,7 @@ class MainWindow(QMainWindow):
 		self.controls.applyTemplateToSelected.connect(self._on_apply_template_to_selected)
 		self.controls.applyTemplateToAll.connect(self._on_apply_template_to_all)
 		self.preview.configChanged.connect(self._on_preview_changed)
+		self.controls.exportClicked.connect(self._export)
 		# dragTargetChanged no longer used; preview determines target by cursor
 
 		# 根据参数决定是否加载保存的会话状态（图片列表和水印设置）
@@ -68,27 +69,9 @@ class MainWindow(QMainWindow):
 			self._load_session_state()
 
 	def _setup_menu(self) -> None:
-		menu = self.menuBar() if self.menuBar() else QMenuBar(self)
+		# 移除菜单栏，所有功能将通过右侧设置栏访问
+		menu = QMenuBar(self)
 		self.setMenuBar(menu)
-		file_menu = menu.addMenu("文件")
-
-		a_export = QAction("导出…", self)
-		a_export.triggered.connect(self._export)
-		file_menu.addAction(a_export)
-
-		edit_menu = menu.addMenu("编辑")
-		a_apply_sel = QAction("将当前设置应用到所选", self)
-		a_apply_sel.triggered.connect(self._apply_to_selected)
-		a_apply_all = QAction("将当前设置应用到全部", self)
-		a_apply_all.triggered.connect(self._apply_to_all)
-		edit_menu.addAction(a_apply_sel)
-		edit_menu.addAction(a_apply_all)
-
-		view_menu = menu.addMenu("视图")
-		a_light = QAction("浅色主题", self); a_light.triggered.connect(lambda: self._set_theme("light"))
-		a_dark = QAction("深色主题", self); a_dark.triggered.connect(lambda: self._set_theme("dark"))
-		a_bw = QAction("黑白主题", self); a_bw.triggered.connect(lambda: self._set_theme("bw"))
-		view_menu.addAction(a_light); view_menu.addAction(a_dark); view_menu.addAction(a_bw)
 
 	def _set_theme(self, which: str) -> None:
 		app = QApplication.instance()
