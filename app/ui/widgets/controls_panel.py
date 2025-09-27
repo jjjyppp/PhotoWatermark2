@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QLineEdit, QHBoxLayout, QSlider, QFileDialog, QComboBox, QCheckBox, QFontComboBox, QListWidget, QListWidgetItem, QColorDialog, QMenu, QInputDialog, QGridLayout, QDoubleSpinBox, QScrollArea
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFrame, QLineEdit, QHBoxLayout, QSlider, QFileDialog, QComboBox, QCheckBox, QFontComboBox, QListWidget, QListWidgetItem, QColorDialog, QMenu, QInputDialog, QGridLayout, QDoubleSpinBox, QScrollArea, QSizePolicy
 from PySide6.QtCore import Qt, Signal, QPoint
 
 import os
@@ -82,12 +82,22 @@ class ControlsPanel(QWidget):
 		hbox_font.addWidget(self.slider_fs, 1); hbox_font.addWidget(self.spin_fs)
 		layout.addLayout(hbox_font)
 
-		row_color = QHBoxLayout(); row_color.setSpacing(4); row_color.addWidget(QLabel("颜色"))
-		self.cmb_color = QComboBox(); self.cmb_color.addItems(["白(半透)", "黑", "红", "绿", "蓝"]) ; self.cmb_color.currentIndexChanged.connect(self._on_color)
+		row_color = QHBoxLayout(); row_color.setSpacing(4)
+		color_label = QLabel("颜色")
+		# 添加颜色显示标签
+		self.color_preview = QLabel()
+		self.color_preview.setFixedSize(20, 20)
+		self.color_preview.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+		self.color_preview.setStyleSheet("background-color: black")  # 默认黑色
+		self.color_preview.setCursor(Qt.PointingHandCursor)  # 设置鼠标指针为手形
+		self.color_preview.mousePressEvent = lambda event: self._pick_color()
+		row_color.addWidget(color_label)
+		row_color.addWidget(self.color_preview)
+		# 颜色下拉框添加自定义选项
+		self.cmb_color = QComboBox(); self.cmb_color.addItems(["白(半透)", "黑", "红", "绿", "蓝", "自定义"]) ; self.cmb_color.currentIndexChanged.connect(self._on_color)
 		# 默认改为黑色
 		self.cmb_color.setCurrentIndex(1)
-		btn_pick = AutoFitButton("自定义颜色…"); btn_pick.clicked.connect(self._pick_color)
-		row_color.addWidget(self.cmb_color); row_color.addWidget(btn_pick)
+		row_color.addWidget(self.cmb_color)
 		layout.addLayout(row_color)
 
 		row_text_op = QHBoxLayout(); row_text_op.setSpacing(4); row_text_op.addWidget(QLabel("文本透明度(%)"))
@@ -297,6 +307,12 @@ class ControlsPanel(QWidget):
 		self._emit()
 
 	def _on_color(self, idx: int) -> None:
+		# 如果选择的是自定义，触发颜色选择器
+		if idx == 5:
+			self._pick_color()
+			# 选择颜色后不保持在自定义选项
+			return
+		
 		mapping = {
 			0: (255, 255, 255, 191),
 			1: (0, 0, 0, 255),
@@ -305,6 +321,7 @@ class ControlsPanel(QWidget):
 			4: (30, 144, 255, 255),
 		}
 		self._cfg.text.color = mapping.get(idx, (255, 255, 255, 191))
+		self._update_color_preview()
 		self._emit()
 
 	def _pick_color(self) -> None:
@@ -313,7 +330,14 @@ class ControlsPanel(QWidget):
 		if color.isValid():
 			self._cfg.text.color = (color.red(), color.green(), color.blue(), color.alpha())
 			self.slider_text_op.setValue(int(color.alpha() * 100 / 255))
+			self._update_color_preview()
 			self._emit()
+		
+	def _update_color_preview(self) -> None:
+		"""更新颜色预览框"""
+		if hasattr(self, 'color_preview'):
+			r, g, b, a = self._cfg.text.color
+			self.color_preview.setStyleSheet(f"background-color: rgba({r}, {g}, {b}, {a});")
 
 	def _on_text_opacity(self, v: int) -> None:
 		r = list(self._cfg.text.color)
