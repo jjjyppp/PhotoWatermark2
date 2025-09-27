@@ -17,7 +17,7 @@ from app.ui.theme import LIGHT_QSS, DARK_QSS, BW_QSS
 
 
 class MainWindow(QMainWindow):
-	def __init__(self) -> None:
+	def __init__(self, load_session: bool = False) -> None:
 		super().__init__()
 		self.setWindowTitle("水印批量处理工具")
 		self.resize(1440, 900)
@@ -63,8 +63,9 @@ class MainWindow(QMainWindow):
 		self.preview.configChanged.connect(self._on_preview_changed)
 		# dragTargetChanged no longer used; preview determines target by cursor
 
-		# 加载保存的会话状态（图片列表和水印设置）
-		self._load_session_state()
+		# 根据参数决定是否加载保存的会话状态（图片列表和水印设置）
+		if load_session:
+			self._load_session_state()
 
 	def _setup_menu(self) -> None:
 		menu = self.menuBar() if self.menuBar() else QMenuBar(self)
