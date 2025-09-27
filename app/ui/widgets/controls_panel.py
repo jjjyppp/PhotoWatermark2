@@ -106,7 +106,7 @@ class ControlsPanel(QWidget):
 		row_color.addWidget(color_label)
 		row_color.addWidget(self.color_preview)
 		# 颜色下拉框添加自定义选项
-		self.cmb_color = QComboBox(); self.cmb_color.addItems(["白(半透)", "黑", "红", "绿", "蓝", "自定义"]) ; self.cmb_color.currentIndexChanged.connect(self._on_color)
+		self.cmb_color = QComboBox(); self.cmb_color.addItems(["白", "黑", "红", "绿", "蓝", "自定义"]) ; self.cmb_color.currentIndexChanged.connect(self._on_color)
 		# 默认改为黑色
 		self.cmb_color.setCurrentIndex(1)
 		row_color.addWidget(self.cmb_color)
@@ -253,7 +253,7 @@ class ControlsPanel(QWidget):
 		self.spin_fs.setValue(getattr(cfg.text, "size_px", 16))
 		self.slider_text_op.setValue(int(cfg.text.color[3]*100/255))
 		self.spin_text_op.setValue(int(cfg.text.color[3]*100/255))
-		# 同步颜色下拉默认值：黑色(1)或白(半透)(0)
+		# 同步颜色下拉默认值：黑色(1)或白(0)
 		try:
 			if tuple(cfg.text.color) == (0, 0, 0, 255):
 				self.cmb_color.setCurrentIndex(1)

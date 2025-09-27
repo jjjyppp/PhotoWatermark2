@@ -149,9 +149,9 @@ class MainWindow(QMainWindow):
 		QMessageBox.information(self, "应用设置", f"已将当前设置应用到全部 {len(paths)} 张图片。")
 
 	def _export(self) -> None:
-		paths = self.image_list.get_all_paths()
+		paths = self.image_list.get_selected_paths()
 		if not paths:
-			QMessageBox.warning(self, "导出", "请先导入图片。")
+			QMessageBox.warning(self, "导出", "请先选择要导出的图片。")
 			return
 
 		dlg = ExportDialog(self, paths)  # 传递原始文件路径
