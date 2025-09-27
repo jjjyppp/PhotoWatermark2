@@ -408,16 +408,28 @@ class ControlsPanel(QWidget):
 	def _reload_templates(self) -> None:
 		self.list_tpls.clear()
 		# 获取默认模板路径
-		from app.core.templates import get_default_template_path
+		from app.core.templates import get_default_template_path, load_template
+		from dataclasses import asdict
 		default_path = get_default_template_path()
+		
+		# 读取默认模板内容（如果存在），用于后续对比
+		default_template_content = None
+		if os.path.exists(default_path):
+			default_template = load_template(default_path)
+			if default_template:
+				default_template_content = asdict(default_template)
 		
 		# 遍历所有模板
 		for p in list_templates():
 			# 获取文件名（不含扩展名）作为模板名称
 			name = os.path.splitext(os.path.basename(p))[0]
-			# 检查是否是默认模板
-			if os.path.normpath(p) == os.path.normpath(default_path):
-				name = f"{name} (default)"
+			
+			# 检查当前模板是否与默认模板内容相同
+			if default_template_content:
+				current_template = load_template(p)
+				if current_template and asdict(current_template) == default_template_content:
+					name = f"{name} (default)"
+			
 			# 创建列表项并存储完整路径
 			item = QListWidgetItem(name)
 			item.setData(Qt.UserRole, p)  # 存储完整路径在UserData中
