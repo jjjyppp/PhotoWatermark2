@@ -154,7 +154,7 @@ class MainWindow(QMainWindow):
 			QMessageBox.warning(self, "导出", "请先导入图片。")
 			return
 
-		dlg = ExportDialog(self)
+		dlg = ExportDialog(self, paths)  # 传递原始文件路径
 		if dlg.exec() != QDialog.Accepted:
 			return
 		opts = dlg.options()
@@ -163,10 +163,7 @@ class MainWindow(QMainWindow):
 			QMessageBox.warning(self, "导出", "请选择有效的输出目录。")
 			return
 
-		first_dir = os.path.dirname(paths[0])
-		if os.path.abspath(first_dir) == os.path.abspath(opts.output_dir):
-			QMessageBox.warning(self, "导出", "为避免覆盖，禁止导出到原图目录，请选择其他目录。")
-			return
+		# 目录检查现在在ExportDialog中实现，这里不再需要
 
 		saved = 0
 		overwrite_all = False

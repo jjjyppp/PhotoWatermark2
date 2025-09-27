@@ -52,11 +52,11 @@ class ControlsPanel(QWidget):
 			btn.setMinimumHeight(26)
 			return btn
 
-		btn_files = small(AutoFitButton("导入图片…"))
+		btn_files = small(AutoFitButton("导入图片"))
 		btn_files.clicked.connect(self.requestOpenFiles.emit)
 		layout.addWidget(btn_files)
 
-		btn_folder = small(AutoFitButton("导入文件夹…"))
+		btn_folder = small(AutoFitButton("导入文件夹"))
 		btn_folder.clicked.connect(self.requestOpenFolder.emit)
 		layout.addWidget(btn_folder)
 
@@ -69,7 +69,7 @@ class ControlsPanel(QWidget):
 		layout.addWidget(self.chk_text)
 
 		self.txt_input = QLineEdit(self._cfg.text.text)
-		self.txt_input.setPlaceholderText("输入水印文本…")
+		self.txt_input.setPlaceholderText("输入水印文本")
 		self.txt_input.textChanged.connect(self._on_text)
 		layout.addWidget(self.txt_input)
 
@@ -143,7 +143,7 @@ class ControlsPanel(QWidget):
 		self.chk_img.stateChanged.connect(lambda s: self._set_enabled_image(bool(s)))
 		layout.addWidget(self.chk_img)
 
-		btn_logo = AutoFitButton("选择图片水印(支持PNG透明)…"); btn_logo.clicked.connect(self._pick_logo)
+		btn_logo = AutoFitButton("选择图片水印"); btn_logo.clicked.connect(self._pick_logo)
 		layout.addWidget(btn_logo)
 
 		row_logo_scale = QHBoxLayout(); row_logo_scale.setSpacing(4); row_logo_scale.addWidget(QLabel("图片缩放(%)"))
@@ -197,7 +197,7 @@ class ControlsPanel(QWidget):
 
 		# Templates with apply buttons
 		row_tpl_head = QHBoxLayout(); row_tpl_head.setSpacing(4)
-		self.btn_save_tpl = AutoFitButton("保存模板…"); self.btn_save_tpl.clicked.connect(self._save_template)
+		self.btn_save_tpl = AutoFitButton("保存模板"); self.btn_save_tpl.clicked.connect(self._save_template)
 		self.btn_load_tpl = AutoFitButton("加载模板"); self.btn_load_tpl.clicked.connect(self._load_template)
 		row_tpl_head.addWidget(self.btn_save_tpl); row_tpl_head.addWidget(self.btn_load_tpl)
 		layout.addLayout(row_tpl_head)
@@ -218,7 +218,7 @@ class ControlsPanel(QWidget):
 		line = QFrame(); line.setFrameShape(QFrame.HLine); layout.addWidget(line)
 
 		# 添加导出按钮
-		btn_export = AutoFitButton("导出图片…")
+		btn_export = AutoFitButton("导出图片")
 		btn_export.setMinimumHeight(36)
 		btn_export.clicked.connect(self.exportClicked.emit)
 		layout.addWidget(btn_export)
@@ -422,7 +422,7 @@ class ControlsPanel(QWidget):
 
 	# templates
 	def _save_template(self) -> None:
-		name, _ = QFileDialog.getSaveFileName(self, "保存模板为…", "", "Template (*.json)")
+		name, _ = QFileDialog.getSaveFileName(self, "保存模板为", "", "Template (*.json)")
 		if not name:
 			return
 		if not name.lower().endswith(".json"):
@@ -500,7 +500,7 @@ class ControlsPanel(QWidget):
 			return
 		menu = QMenu(self)
 		a_apply = menu.addAction("应用模板")
-		a_rename = menu.addAction("重命名…")
+		a_rename = menu.addAction("重命名")
 		a_delete = menu.addAction("删除")
 		a = menu.exec(self.list_tpls.mapToGlobal(pos))
 		if not a:
