@@ -100,7 +100,9 @@ class ControlsPanel(QWidget):
 		self.color_preview = QLabel()
 		self.color_preview.setFixedSize(20, 20)
 		self.color_preview.setFrameStyle(QFrame.Panel | QFrame.Sunken)
-		self.color_preview.setStyleSheet("background-color: black")  # 默认黑色
+		# 初始化为黑色，使用正确的透明度转换
+		self._cfg.text.color = (0, 0, 0, 255)
+		self._update_color_preview()
 		self.color_preview.setCursor(Qt.PointingHandCursor)  # 设置鼠标指针为手形
 		self.color_preview.mousePressEvent = lambda event: self._pick_color()
 		row_color.addWidget(color_label)
@@ -364,7 +366,9 @@ class ControlsPanel(QWidget):
 		"""更新颜色预览框"""
 		if hasattr(self, 'color_preview'):
 			r, g, b, a = self._cfg.text.color
-			self.color_preview.setStyleSheet(f"background-color: rgba({r}, {g}, {b}, {a});")
+			# 将透明度从0-255转换为0-1
+			alpha = a / 255.0
+			self.color_preview.setStyleSheet(f"background-color: rgba({r}, {g}, {b}, {alpha});")
 
 	def _on_text_opacity(self, v: int) -> None:
 		r = list(self._cfg.text.color)
@@ -434,12 +438,7 @@ class ControlsPanel(QWidget):
 		template_name = os.path.splitext(os.path.basename(name))[0]
 		template_path = save_template(template_name, self._cfg)
 		
-		# 询问是否设为默认模板
-		from PySide6.QtWidgets import QMessageBox
-		result = QMessageBox.question(self, "设为默认模板", "是否将此模板设为默认模板？程序启动时将自动加载。")
-		if result == QMessageBox.Yes:
-			from app.core.templates import set_default_template
-			set_default_template(template_path)
+		# 移除默认模板设置功能
 		
 		self._reload_templates()
 		
@@ -458,28 +457,10 @@ class ControlsPanel(QWidget):
 
 	def _reload_templates(self) -> None:
 		self.list_tpls.clear()
-		# 获取默认模板路径
-		from app.core.templates import get_default_template_path, load_template
-		from dataclasses import asdict
-		default_path = get_default_template_path()
-		
-		# 读取默认模板内容（如果存在），用于后续对比
-		default_template_content = None
-		if os.path.exists(default_path):
-			default_template = load_template(default_path)
-			if default_template:
-				default_template_content = asdict(default_template)
-		
 		# 遍历所有模板
 		for p in list_templates():
 			# 获取文件名（不含扩展名）作为模板名称
 			name = os.path.splitext(os.path.basename(p))[0]
-			
-			# 检查当前模板是否与默认模板内容相同
-			if default_template_content:
-				current_template = load_template(p)
-				if current_template and asdict(current_template) == default_template_content:
-					name = f"{name} (default)"
 			
 			# 创建列表项并存储完整路径
 			item = QListWidgetItem(name)

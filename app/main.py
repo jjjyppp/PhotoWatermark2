@@ -5,7 +5,7 @@ from PySide6.QtCore import QTimer
 
 from app.ui.main_window import MainWindow
 from app.ui.theme import LIGHT_QSS, DARK_QSS, BW_QSS
-from app.core.templates import load_default_template, load_session_state
+from app.core.templates import load_session_state
 from app.core.models import WatermarkConfig
 
 
@@ -43,6 +43,10 @@ def main() -> int:
 		# 确保不启用文字和图片水印
 		default_cfg.layout.enabled_text = False
 		default_cfg.layout.enabled_image = False
+		# 确保文本水印内容为"Sample Watermark"
+		default_cfg.text.text = "Sample Watermark"
+		# 确保文本水印颜色为黑色
+		default_cfg.text.color = (0, 0, 0, 255)
 		# 确保字号为16
 		default_cfg.text.size_px = 16
 		# 确保图片缩放为30%
@@ -55,22 +59,8 @@ def main() -> int:
 		default_cfg.layout.text_position = (0.5, 0.5)
 		default_cfg.layout.image_position = (0.5, 0.5)
 		
-		# 尝试加载默认模板，如果存在则使用它
-		default_template = load_default_template()
-		if default_template:
-			# 即使使用默认模板，也强制应用我们的默认设置
-			cfg_to_use = default_template
-			cfg_to_use.layout.enabled_text = False
-			cfg_to_use.layout.enabled_image = False
-			cfg_to_use.text.size_px = 16
-			# 强制应用图片缩放为30%、透明度为75%和位置为正中的设置
-			cfg_to_use.image.scale = 0.3
-			cfg_to_use.image.opacity = 0.75
-			cfg_to_use.layout.image_rotation_deg = 0.0
-			cfg_to_use.layout.text_position = (0.5, 0.5)
-			cfg_to_use.layout.image_position = (0.5, 0.5)
-		else:
-			cfg_to_use = default_cfg
+		# 使用基本默认配置（移除默认模板功能）
+		cfg_to_use = default_cfg
 		
 		# 使用计时器异步设置配置，避免阻塞UI初始化
 		QTimer.singleShot(0, lambda cfg=cfg_to_use: window.preview.updateConfig(cfg))
